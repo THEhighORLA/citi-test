@@ -1,7 +1,7 @@
 package com.tax.transactions.citi_test.controllers;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,63 +14,84 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tax.transactions.citi_test.entities.TransactionEntity;
+import com.tax.transactions.citi_test.errors.exceptions.ResourceNotFoundException;
 import com.tax.transactions.citi_test.services.TransactionService;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import utils.ResponseMapper;
 
 @RestController
 @RequestMapping("/api/transactions")
-public class TransactionControllerImpl implements TransactionController {
+public class TransactionControllerImpl {
 
     @Autowired
     private TransactionService transactionService;
 
-    @Override
+    private static final String TRANSACTION_SERVICE = "transactionService";
+
     @GetMapping
-    public ResponseEntity<ResponseMapper<TransactionEntity>> getAllTransactions() {
-        List<TransactionEntity> trx = this.transactionService.getAllTransactions();
+    @CircuitBreaker(name = TRANSACTION_SERVICE, fallbackMethod = "fallbackGetAllTransactions")
+    @Retry(name = TRANSACTION_SERVICE)
+    @TimeLimiter(name = TRANSACTION_SERVICE)
+    public CompletableFuture<ResponseEntity<ResponseMapper<List<TransactionEntity>>>> getAllTransactions() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<TransactionEntity> transactions = transactionService.getAllTransactions();
 
-        if (trx == null || trx.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ResponseMapper<>("No transactions found", HttpStatus.NOT_FOUND.value(), "Error", new ArrayList<>()));
-        }
+            if (transactions.isEmpty()) {
+                throw new ResourceNotFoundException("No transactions found");
+            }
 
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(new ResponseMapper<>("Transactions retrieved successfully", HttpStatus.OK.value(), "Success", trx));
+            return ResponseEntity.ok(
+                    new ResponseMapper<>("Transactions retrieved successfully", HttpStatus.OK.value(), "Success", transactions)
+            );
+        });
     }
 
-    @Override
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseMapper<TransactionEntity>> getTransactionById(@PathVariable("id") Long id) {
-        TransactionEntity trx = this.transactionService.getTransactionById(id).orElse(null);
+    @CircuitBreaker(name = TRANSACTION_SERVICE, fallbackMethod = "fallbackGetTransactionById")
+    @Retry(name = TRANSACTION_SERVICE)
+    @TimeLimiter(name = TRANSACTION_SERVICE)
+    public CompletableFuture<ResponseEntity<ResponseMapper<TransactionEntity>>> getTransactionById(@PathVariable Long id) {
+        return CompletableFuture.supplyAsync(() -> {
+            TransactionEntity transaction = transactionService.getTransactionById(id);
 
-        if (trx == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ResponseMapper<>("Transaction with id " + id + " not found", HttpStatus.NOT_FOUND.value(), "Error", new ArrayList<>()));
-        }
+            if (transaction == null) throw new ResourceNotFoundException("Transaction with id " + id + " not found");
 
-        List<TransactionEntity> trxAsObjects = new ArrayList<>();
-        trxAsObjects.add(trx);
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(new ResponseMapper<>("Transaction retrieved successfully", HttpStatus.OK.value(), "Success", trxAsObjects));
+            return ResponseEntity.ok(
+                    new ResponseMapper<>("Transaction retrieved successfully", HttpStatus.OK.value(), "Success", transaction)
+            );
+        });
     }
 
-    @Override
     @PostMapping
-    public ResponseEntity<ResponseMapper<TransactionEntity>> saveTransaction(@RequestBody TransactionEntity transaction) {
-        TransactionEntity trx = this.transactionService.saveTransaction(transaction);
+    @CircuitBreaker(name = TRANSACTION_SERVICE, fallbackMethod = "fallbackSaveTransaction")
+    @Retry(name = TRANSACTION_SERVICE)
+    @TimeLimiter(name = TRANSACTION_SERVICE)
+    public CompletableFuture<ResponseEntity<ResponseMapper<TransactionEntity>>> saveTransaction(@RequestBody TransactionEntity transaction) {
+        return CompletableFuture.supplyAsync(() -> {
+            TransactionEntity savedTransaction = transactionService.saveTransaction(transaction);
 
-        if (trx == null) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ResponseMapper<>("Error saving transaction", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error", new ArrayList<>()));
-        }
-
-        List<TransactionEntity> trxAsObjects = new ArrayList<>();
-        trxAsObjects.add(trx);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ResponseMapper<>("Transaction saved successfully", HttpStatus.CREATED.value(), "Success", trxAsObjects));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new ResponseMapper<>("Transaction saved successfully", HttpStatus.CREATED.value(), "Success", savedTransaction));
+        });
     }
 
+
+    
+    public ResponseEntity<ResponseMapper<List<TransactionEntity>>> fallbackGetAllTransactions(Exception e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ResponseMapper<>("Transaction service is temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE.value(), "Failure", null));
+    }
+
+    public ResponseEntity<ResponseMapper<TransactionEntity>> fallbackGetTransactionById(Long id, Exception e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ResponseMapper<>("Transaction service is temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE.value(), "Failure", null));
+    }
+
+    public ResponseEntity<ResponseMapper<TransactionEntity>> fallbackSaveTransaction(TransactionEntity transaction, Exception e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ResponseMapper<>("Transaction service is temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE.value(), "Failure", null));
+    }
 }

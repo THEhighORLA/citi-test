@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-CitiTestApplication<citi-test>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.tax.transactions.citi_test.CitiTestApplication",
+            "projectName": "citi-test",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Debug Test",
+            "request": "launch",
+            "mainClass": "org.junit.platform.console.ConsoleLauncher",
+            "args": [
+                "--scan-classpath"
+            ],
+            "projectName": "citi-test",
+            "envFile": "${workspaceFolder}/.env"
+        },
+    ]
+}

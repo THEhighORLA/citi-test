@@ -1,49 +1,47 @@
 package utils;
 
-import java.util.List;
-
 public class ResponseMapper<T> {
-    private String serverMessage;
-    private int code;
-    private String status;
-    private List<T> data;  // Ahora la lista es genérica
+    private String message;
+    private int status;
+    private String statusText;
+    private T data;
 
-    public ResponseMapper(String serverMessage, int code, String status, List<T> data) {
-        this.serverMessage = serverMessage;
-        this.code = code;
+    public ResponseMapper(String message, int status, String statusText, T data) {
+        this.message = message;
         this.status = status;
+        this.statusText = statusText;
         this.data = data;
     }
 
-    public String getServerMessage() {
-        return serverMessage;
+    public String getMessage() {
+        return message;
     }
 
-    public void setServerMessage(String serverMessage) {
-        this.serverMessage = serverMessage;
+    public void setMessage(String message) {
+        this.message = message;
     }
 
-    public int getCode() {
-        return code;
-    }
-
-    public void setCode(int code) {
-        this.code = code;
-    }
-
-    public String getStatus() {
+    public int getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(int status) {
         this.status = status;
     }
 
-    public List<T> getData() {
+    public String getStatusText() {
+        return statusText;
+    }
+
+    public void setStatusText(String statusText) {
+        this.statusText = statusText;
+    }
+
+    public T getData() {
         return data;
     }
 
-    public void setData(List<T> data) {
+    public void setData(T data) {
         this.data = data;
     }
 }

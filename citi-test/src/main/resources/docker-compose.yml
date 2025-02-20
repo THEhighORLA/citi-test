@@ -1,0 +1,28 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: root    # Contraseña para el usuario root
+      MYSQL_DATABASE: testdb                 # Base de datos inicial
+      MYSQL_USER: oruru                     # Nombre de usuario
+      MYSQL_PASSWORD: oruru         # Contraseña del usuario
+    ports:
+      - "3306:3306"                         # Mapea el puerto 3306 del contenedor al puerto 3306 de la máquina local
+    volumes:
+      - mysql-data:/var/lib/mysql           # Persistencia de datos
+    restart: always                         # Reinicia automáticamente si el contenedor se detiene
+
+  phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      container_name: phpmyadmin-container
+      environment:
+        PMA_HOST: mysql                      # Nombre del contenedor MySQL
+        PMA_PORT: 3306                       # Puerto donde se ejecuta MySQL
+        MYSQL_ROOT_PASSWORD: root    # Contraseña del root
+      ports:
+        - "8080:80"                          # Mapea el puerto 8080 del contenedor al puerto 80 de la máquina local
+      restart: always
+volumes:
+  mysql-data:
+    driver: local

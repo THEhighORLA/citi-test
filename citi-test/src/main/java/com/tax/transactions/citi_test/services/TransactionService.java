@@ -1,7 +1,6 @@
 package com.tax.transactions.citi_test.services;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -14,6 +13,6 @@ public interface TransactionService {
 
     List<TransactionEntity> getAllTransactions();
     
-    Optional<TransactionEntity> getTransactionById(Long id);
+    TransactionEntity getTransactionById(Long id);
 
 }
